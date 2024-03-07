@@ -80,7 +80,7 @@ public:
 			std::cout << '\n';
 		}
 		std::cout << "score: " << score << " " << std::endl;
-		std::cout << "A:left	D:right    S:down    T:reverse    X:exit" << std::endl;
+		std::cout << "A:left	D:right    S:down    W:reverse    X:exit" << std::endl;
 		std::cout << std::endl;
 		std::cout << "Version:0.03    Made by Mrlaolu" << std::endl;
 	}
@@ -100,6 +100,15 @@ public:
 			{
 				base[i][j] = ' ';
 			}
+		}
+	}
+
+	void fail_exit()
+	{
+		std::cout << '\r';
+		for (int i = 0; i < w; ++i)
+		{
+			std::cout << " ";
 		}
 	}
 	
@@ -342,9 +351,10 @@ public:
 		{
 			for (int j = 0; j < construct[i].size(); ++j)
 			{
-				pre_construct[j][i] = construct[i][j];
+				//pre_construct[j][i] = construct[i][j];
+				pre_construct[construct[i].size() - j - 1][i] = construct[i][j];
 			}
-		}
+		} 
 
 		for (int j = pre_construct.size() - 1; j >= 0; --j)          //左右下合法性检测
 		{
@@ -449,11 +459,11 @@ int main()
 					stop = true;
 				}
 				break;
-			case 't':
+			case 'w':
 				a.reverse(dis);
 				break;
 			case 'x':
-				std::cout << "Do you want to exit?(y/n)" << std::endl;
+				std::cout << "Do you want to exit?(y/n)";
 				while (1)
 				{
 					bool fail = 0;
@@ -467,7 +477,7 @@ int main()
 							fail = 1;
 							break;
 					}
-					if (fail) { break; }
+					if (fail) { dis.fail_exit(); break; }
 				}
 			}
 
