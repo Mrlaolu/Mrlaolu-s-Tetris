@@ -50,6 +50,7 @@ public:
 
 	void enough_check()
 	{
+		DownMtx.lock();
 		for (int i = 3; i < h - 1; ++i)
 		{
 			int cnt = 0;
@@ -69,6 +70,7 @@ public:
 				}
 			}
 		}
+		DownMtx.unlock();
 	}
 
 	void print()
@@ -89,7 +91,7 @@ public:
 		std::cout << "score: " << score << " " << std::endl;
 		std::cout << "A:left    D:right    S:down    W:reverse    X:exit" << std::endl;
 		std::cout << std::endl;
-		std::cout << "Version:0.03    Made by Mrlaolu" << std::endl;
+		std::cout << "Version:0.10    Made by Mrlaolu" << std::endl;
 		DownMtx.unlock();
 	}
 
@@ -550,8 +552,8 @@ int main()
 		
 		if (StopOuter)
 		{
-			dis.enough_check();
 			dis.print();
+			dis.enough_check();
 			AutoTimeDown.join();
 		}
 
