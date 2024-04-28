@@ -3,10 +3,16 @@
 #include <windows.h>
 #include <conio.h>
 #include <random>
+#include <thread>
+#include <atomic>
+#include <mutex>
+#include <sstream>
 
 bool debug_mode = 0;
 
 int score = 0;
+
+std::mutex DownMtx;
 
 class display         
 {
@@ -67,6 +73,7 @@ public:
 
 	void print()
 	{
+		DownMtx.lock();
 		for (int i = 0; i < h + 6; ++i)
 		{
 			std::cout << "\033[F";
@@ -80,9 +87,10 @@ public:
 			std::cout << '\n';
 		}
 		std::cout << "score: " << score << " " << std::endl;
-		std::cout << "A:left	D:right    S:down    W:reverse    X:exit" << std::endl;
+		std::cout << "A:left    D:right    S:down    W:reverse    X:exit" << std::endl;
 		std::cout << std::endl;
 		std::cout << "Version:0.03    Made by Mrlaolu" << std::endl;
+		DownMtx.unlock();
 	}
 
 	void init()
@@ -125,7 +133,7 @@ protected:
 	int y;
 public:
 
-	stuff(int n):x(1),y(2)
+	stuff(int n):x(1),y(2)                                            //创建当前活动方块
 	{
 
 		switch (n)
@@ -179,9 +187,9 @@ public:
 			construct[0][0] = construct[0][1] = construct[1][1] = construct[0][2] = 1;
 			break;
 		}
-	}
+	}         //
 
-	stuff(int n,display &dis) :x(dis.w / 2 + dis.w / 4), y(7)
+	stuff(int n,display &dis) :x(dis.w / 2 + dis.w / 4), y(7)             //预览下一个方块
 	{
 		for (int i = -2; i < 5; ++i)
 		{
@@ -242,7 +250,7 @@ public:
 			construct[0][0] = construct[0][1] = construct[1][1] = construct[0][2] = 1;
 			break;
 		}
-	}
+	}          //
 
 	~stuff()
 	{}
@@ -250,6 +258,7 @@ public:
 
 	void out_display(display& dis)
 	{
+		DownMtx.lock();
 		for (int i = 0; i < construct.size(); ++i)
 		{
 			for (int j = 0; j < construct[i].size(); ++j)
@@ -260,10 +269,12 @@ public:
 				}
 			}
 		}
+		DownMtx.unlock();
 	}
 
 	void in_display(display& dis)
 	{
+		DownMtx.lock();
 		for (int i = 0; i < construct.size(); ++i)
 		{
 			for (int j = 0; j < construct[i].size(); ++j)
@@ -274,11 +285,13 @@ public:
 				}
 			}
 		}
+		DownMtx.unlock();
 	}
 
 
 	bool down(display& dis)
 	{
+		DownMtx.lock();
 		for (int i = 0; i < construct[0].size(); ++i)
 		{
 			for (int j = construct.size() - 1; j >= 0; --j)
@@ -287,6 +300,7 @@ public:
 				{
 					if (dis.base[j + 1 + y][x + i] != ' ')
 					{
+						DownMtx.unlock();
 						return false;
 					}
 					else
@@ -297,11 +311,13 @@ public:
 			}
 		}
 		y += 1;
+		DownMtx.unlock();
 		return true;
 	}
 
 	void left(display& dis)
 	{
+		DownMtx.lock();
 		for (int j = construct.size() - 1; j >= 0; --j)
 		{
 			for (int i = 0; i < construct[j].size(); ++i)
@@ -310,6 +326,7 @@ public:
 				{
 					if (dis.base[j + y][i - 1 + x] != ' ')
 					{
+						DownMtx.unlock();
 						return;
 					}
 					else
@@ -320,10 +337,12 @@ public:
 			}
 		}
 		if(x > 1)x -= 1;
+		DownMtx.unlock();
 	}
 
 	void right(display& dis)
 	{
+		DownMtx.lock();
 		for (int j = construct.size() - 1; j >= 0; --j)
 		{
 			for (int i = construct[j].size() - 1; i >= 0 ; --i)
@@ -332,6 +351,7 @@ public:
 				{
 					if (dis.base[j + y][i + 1 + x] != ' ')
 					{
+						DownMtx.unlock();
 						return;
 					}
 					else
@@ -342,10 +362,12 @@ public:
 			}
 		}
 		if(x+construct[0].size() < dis.w / 2)x += 1;
+		DownMtx.unlock();
 	}
 
 	void reverse(display &dis)
 	{
+		DownMtx.lock();
 		std::vector<std::vector<int>>pre_construct(construct[0].size(), std::vector<int>(construct.size()));
 		for (int i = 0; i < construct.size(); ++i)
 		{
@@ -364,6 +386,7 @@ public:
 				{
 					if (dis.base[j + y][i + x] != ' ')
 					{
+						DownMtx.unlock();
 						return;
 					}
 					else
@@ -382,6 +405,7 @@ public:
 				{
 					if (dis.base[j + y][i  + x] != ' ')
 					{
+						DownMtx.unlock();
 						return;
 					}
 					else
@@ -400,6 +424,7 @@ public:
 				{
 					if (dis.base[j + y][x + i] != ' ')
 					{
+						DownMtx.unlock();
 						return;
 					}
 					else
@@ -411,11 +436,10 @@ public:
 		}
 
 		construct.assign(pre_construct.begin(), pre_construct.end());
+		DownMtx.unlock();
 	}
 
 };
-
-
 
 
 
@@ -434,33 +458,64 @@ int main()
 	int n = dis1(gen);
 	while (1)
 	{
-		stuff a(n);
+		stuff nowstuff(n);                                             //当前方块
 		int k = dis1(gen);
-		stuff b(k,dis);
-		b.in_display(dis);
-		a.in_display(dis);
+		stuff nextstuff(k,dis);                                      
+		nextstuff.in_display(dis);
+		nowstuff.in_display(dis);
 		dis.print();
-		while (1)
+
+		std::atomic_bool StopOuter = false;
+		std::atomic_bool StopInner = false;
+		
+		std::thread AutoTimeDown([&]() -> void {
+			while (true)
+			{
+				nowstuff.out_display(dis);
+				if (nowstuff.down(dis) == false)
+				{
+					StopOuter = true;
+					INPUT input;
+					input.type = INPUT_KEYBOARD;
+					input.ki.wScan = 0;
+					input.ki.time = 0;
+					input.ki.dwExtraInfo = 0;
+					input.ki.wVk = VK_ESCAPE;
+					input.ki.dwFlags = 0; // 0 for key press
+
+					SendInput(1, &input, sizeof(INPUT));
+
+					// 模拟键盘抬起事件
+					input.ki.dwFlags = KEYEVENTF_KEYUP;
+					SendInput(1, &input, sizeof(INPUT));
+				}
+				std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+				nowstuff.in_display(dis);
+				dis.print();
+				if(StopOuter)break;
+			}
+			});
+
+		while (1 && !StopOuter)
 		{
-			bool stop = false;
 			char ch = _getch();
-			a.out_display(dis);
+			nowstuff.out_display(dis);
 			switch (ch)
 			{
 			case 'a':
-				a.left(dis);
+				nowstuff.left(dis);
 				break;
 			case 'd':
-				a.right(dis);
+				nowstuff.right(dis);
 				break;
 			case 's':
-				if (a.down(dis) == false)
+				if (nowstuff.down(dis) == false)
 				{
-					stop = true;
+					StopInner = true;
 				}
 				break;
 			case 'w':
-				a.reverse(dis);
+				nowstuff.reverse(dis);
 				break;
 			case 'x':
 				std::cout << "Do you want to exit?(y/n)";
@@ -481,16 +536,25 @@ int main()
 				}
 			}
 
-			a.in_display(dis);
+
+
+			nowstuff.in_display(dis);
 			dis.print();
-			if (stop)
+			if (StopInner)
 			{
-				dis.enough_check();
-				dis.print();
+				StopOuter = true;
 				break;
 			}
 			n = k;
 		}
+		
+		if (StopOuter)
+		{
+			dis.enough_check();
+			dis.print();
+			AutoTimeDown.join();
+		}
+
 	}
 }
 	
